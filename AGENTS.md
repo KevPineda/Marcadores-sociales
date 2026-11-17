@@ -22,7 +22,7 @@ Aplicación para **guardar enlaces con etiquetas y vista previa automática** (t
 | Capa       | Tecnología                                                          |
 |------------|---------------------------------------------------------------------|
 | Front      | Next.js 16 (App Router), React 19, TypeScript estricto, CSS Modules |
-| API        | Route Handlers (`runtime = "nodejs"`), Zod                          |
+| API        | Route Handlers (runtime Node.js por defecto), Zod                   |
 | Auth       | Firebase Auth (SDK web) + cookie de sesión HttpOnly (Admin SDK)     |
 | Datos      | Firestore vía `firebase-admin`                                      |
 | Pruebas    | Vitest, React Testing Library, jsdom                                |
@@ -63,7 +63,9 @@ Aplicación para **guardar enlaces con etiquetas y vista previa automática** (t
 2. Los Route Handlers solo leen la petición, validan con Zod, llaman al servicio y responden.
 3. Toda la lógica de negocio va en `src/services`, como funciones puras siempre que se pueda.
 4. Solo `src/repositories` importa Firestore; el resto usa sus funciones.
-5. Todo Route Handler se envuelve en `manejar(handler)` y declara `export const runtime = "nodejs"`.
+5. Todo Route Handler se envuelve en `manejar(handler)`.
+6. **No** declares `export const runtime`: con `cacheComponents` Next.js 16 lo prohíbe y Node.js ya es el runtime por defecto.
+7. Todo `GET` de la API lee la petición (sesión o parámetros); si no, Next.js lo prerenderiza en el build.
 
 ## 2. Seguridad (no negociable)
 1. El navegador **nunca** importa `firebase/firestore` ni `firebase-admin`; solo `firebase/auth`.

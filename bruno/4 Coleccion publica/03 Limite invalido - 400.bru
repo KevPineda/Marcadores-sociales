@@ -1,0 +1,15 @@
+meta {
+  name: Limite invalido - 400
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/u/{{nombrePublico}}/marcadores?limite=0
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}

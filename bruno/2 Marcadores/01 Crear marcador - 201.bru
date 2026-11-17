@@ -1,0 +1,35 @@
+meta {
+  name: Crear marcador - 201
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "url": "https://zod.dev/?utm_source=bruno#inicio",
+    "etiquetas": ["typescript", "validacion"],
+    "publico": true
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("marcadorId", res.body.id);
+}
+
+docs {
+  Normaliza la URL (sin utm_* ni #) y extrae la vista previa en el servidor.
+}

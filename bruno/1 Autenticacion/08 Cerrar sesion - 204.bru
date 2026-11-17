@@ -1,0 +1,19 @@
+meta {
+  name: Cerrar sesion - 204
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/auth/sesion
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+assert {
+  res.status: eq 204
+}

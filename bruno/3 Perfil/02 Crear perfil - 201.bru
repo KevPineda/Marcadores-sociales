@@ -1,0 +1,29 @@
+meta {
+  name: Crear perfil - 201
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/perfil
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "nombre": "{{nombrePublico}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Responde 409 si el nombre ya está en uso o si ya tiene uno.
+}

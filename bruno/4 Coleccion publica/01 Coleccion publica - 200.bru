@@ -1,0 +1,19 @@
+meta {
+  name: Coleccion publica - 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/u/{{nombrePublico}}/marcadores
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  No requiere sesión. Solo devuelve marcadores con publico = true.
+}

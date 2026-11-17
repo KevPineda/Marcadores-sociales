@@ -1,0 +1,19 @@
+meta {
+  name: Yo - 200
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/auth/yo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+assert {
+  res.status: eq 200
+}

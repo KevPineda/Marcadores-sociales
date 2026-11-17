@@ -1,0 +1,29 @@
+meta {
+  name: Crear URL interna - 400
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "url": "http://169.254.169.254/"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  Criterio 1: protección SSRF.
+}

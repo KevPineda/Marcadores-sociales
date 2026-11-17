@@ -1,0 +1,29 @@
+meta {
+  name: Crear duplicado con utm - 409
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "url": "https://zod.dev/?utm_medium=email&fbclid=abc"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Criterio 4: un enlace repetido con utm_* es duplicado.
+}

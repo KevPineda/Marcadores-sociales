@@ -1,0 +1,25 @@
+meta {
+  name: Crear sin sesion - 401
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+body:json {
+  {
+    "url": "https://web.dev/"
+  }
+}
+
+assert {
+  res.status: eq 401
+}

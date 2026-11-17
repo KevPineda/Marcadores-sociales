@@ -1,0 +1,32 @@
+meta {
+  name: Obtener idToken (Firebase)
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{correo}}",
+    "password": "{{clave}}",
+    "returnSecureToken": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("idToken", res.body.idToken);
+}
+
+docs {
+  Inicia sesión con correo y contraseña en Firebase Auth y guarda el idToken para el resto de la colección.
+  Configure firebaseApiKey, correo y clave como variables secretas del entorno.
+}

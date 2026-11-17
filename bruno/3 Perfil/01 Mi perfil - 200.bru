@@ -1,0 +1,19 @@
+meta {
+  name: Mi perfil - 200
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/perfil
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+assert {
+  res.status: eq 200
+}

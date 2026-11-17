@@ -1,0 +1,29 @@
+meta {
+  name: Crear sesion origen ajeno - 403
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sesion
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: https://malicioso.example
+}
+
+body:json {
+  {
+    "idToken": "{{idToken}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Defensa CSRF: el Origin no es el del sitio.
+}

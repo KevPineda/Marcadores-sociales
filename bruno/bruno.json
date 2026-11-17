@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Marcadores sociales",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -4,6 +4,15 @@ import { motivoUrlNoPermitida } from "@/services/url";
 
 export const MAXIMO_ETIQUETAS = 10;
 
+/** Título escrito por la persona (vacío = usar el de la vista previa). */
+export const tituloSchema = z.string().trim().max(300, "El título admite máximo 300 caracteres.");
+
+/** Lista de etiquetas sin repetir, máximo 10. */
+export const listaEtiquetasSchema = z
+  .array(etiquetaSchema)
+  .max(MAXIMO_ETIQUETAS, `Usa máximo ${MAXIMO_ETIQUETAS} etiquetas.`)
+  .refine((etiquetas) => new Set(etiquetas).size === etiquetas.length, "Hay etiquetas repetidas.");
+
 /**
  * Datos para guardar un enlace. Se usa igual en el formulario (cliente) y en
  * el Route Handler (servidor); el servidor es quien decide.
@@ -20,16 +29,9 @@ export const nuevoMarcadorSchema = z.strictObject({
         contexto.addIssue({ code: "custom", message: motivo });
       }
     }),
-  titulo: z
-    .string()
-    .trim()
-    .max(300, "El título admite máximo 300 caracteres.")
-    .transform((titulo) => titulo || null),
-  etiquetas: z
-    .array(etiquetaSchema)
-    .max(MAXIMO_ETIQUETAS, `Usa máximo ${MAXIMO_ETIQUETAS} etiquetas.`)
-    .refine((etiquetas) => new Set(etiquetas).size === etiquetas.length, "Hay etiquetas repetidas."),
-  publico: z.boolean(),
+  titulo: tituloSchema.optional().transform((titulo) => titulo || null),
+  etiquetas: listaEtiquetasSchema.default([]),
+  publico: z.boolean().default(false),
 });
 
 export type NuevoMarcadorEntrada = z.input<typeof nuevoMarcadorSchema>;

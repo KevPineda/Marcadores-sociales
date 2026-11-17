@@ -1,0 +1,19 @@
+meta {
+  name: Exportar - 200
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/marcadores/exportar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+assert {
+  res.status: eq 200
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Eliminar otra vez - 404
+  type: http
+  seq: 19
+}
+
+delete {
+  url: {{baseUrl}}/api/marcadores/{{marcadorId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+assert {
+  res.status: eq 404
+}

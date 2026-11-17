@@ -1,0 +1,23 @@
+meta {
+  name: Editar vacio - 400
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/api/marcadores/{{marcadorId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 400
+}

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Mensajes de error de Zod en español para cliente y servidor (los esquemas propios ya traen los suyos).
+z.config(z.locales.es());
+
 /** Etiqueta: minúsculas, números, guiones y tildes; máximo 30 caracteres. */
 export const etiquetaSchema = z
   .string()

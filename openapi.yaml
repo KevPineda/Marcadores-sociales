@@ -1,0 +1,527 @@
+openapi: 3.1.0
+info:
+  title: Marcadores sociales — API
+  version: 1.0.0
+  description: |
+    API REST del proyecto 49 (Route Handlers de Next.js + Firebase).
+
+    - JSON, fechas ISO 8601 en UTC, campos en camelCase.
+    - Autenticación: cookie de sesión `sesion` (HttpOnly) o `Authorization: Bearer <idToken>` de Firebase.
+    - En POST, PATCH y DELETE la cabecera `Origin` debe ser la del sitio. Sin `Origin` solo se acepta con Bearer.
+    - Todo error responde `{ "error": "mensaje", "detalles"?: [{ "campo", "mensaje" }] }`.
+    - Cada respuesta incluye `X-Request-Id` para rastrear la solicitud en los registros.
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo
+  - url: https://{dominio}
+    description: Producción (Vercel)
+    variables:
+      dominio:
+        default: marcadores-sociales.vercel.app
+
+tags:
+  - name: Autenticación
+  - name: Marcadores
+  - name: Importar y exportar
+  - name: Perfil público
+  - name: Tareas programadas
+
+security:
+  - cookieSesion: []
+  - bearerIdToken: []
+
+paths:
+  /api/auth/sesion:
+    post:
+      tags: [Autenticación]
+      summary: Crear la cookie de sesión
+      description: |
+        Recibe el idToken que devuelve `getIdToken()` tras iniciar sesión con Firebase Auth en el navegador.
+        Exige un inicio de sesión reciente (menos de 5 minutos). La cookie dura 5 días.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrearSesion" }
+      responses:
+        "204":
+          description: Sesión creada.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              example: sesion=…; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=432000
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "415": { $ref: "#/components/responses/TipoNoPermitido" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+        "500": { $ref: "#/components/responses/ErrorInterno" }
+    delete:
+      tags: [Autenticación]
+      summary: Cerrar sesión
+      description: Revoca los refresh tokens del usuario y borra la cookie.
+      security: []
+      responses:
+        "204":
+          description: Sesión cerrada.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              example: sesion=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+
+  /api/auth/yo:
+    get:
+      tags: [Autenticación]
+      summary: Usuario de la sesión actual
+      responses:
+        "200":
+          description: Usuario autenticado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuario]
+                properties:
+                  usuario: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+  /api/marcadores:
+    get:
+      tags: [Marcadores]
+      summary: Listar mis marcadores
+      description: Del más reciente al más antiguo, paginado por cursor.
+      parameters:
+        - $ref: "#/components/parameters/Limite"
+        - $ref: "#/components/parameters/Cursor"
+        - name: etiqueta
+          in: query
+          description: Filtra por una etiqueta.
+          schema: { $ref: "#/components/schemas/Etiqueta" }
+      responses:
+        "200":
+          description: Página de marcadores.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaMarcadores" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+    post:
+      tags: [Marcadores]
+      summary: Guardar un enlace con vista previa automática
+      description: |
+        Normaliza la URL (quita `utm_*`, `fbclid`, el fragmento…), rechaza duplicados y extrae
+        título, descripción e imagen (Open Graph) **en el servidor**. La descarga tiene un tiempo
+        máximo de 5 s, un tamaño máximo de 1 MB y como máximo 3 redirecciones, y cada destino se
+        valida contra SSRF (también por DNS). Si la página es demasiado grande, lenta o no es HTML,
+        se guarda sin vista previa. Si responde 404 o no conecta, se guarda con `estado: "roto"`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevoMarcador" }
+      responses:
+        "201":
+          description: Marcador creado.
+          headers:
+            Location:
+              schema: { type: string }
+              example: /api/marcadores/3f0c…
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Marcador" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+        "413": { $ref: "#/components/responses/DemasiadoGrande" }
+        "415": { $ref: "#/components/responses/TipoNoPermitido" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+
+  /api/marcadores/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/IdMarcador" }
+    get:
+      tags: [Marcadores]
+      summary: Obtener un marcador propio
+      responses:
+        "200":
+          description: El marcador.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Marcador" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    patch:
+      tags: [Marcadores]
+      summary: Editar título, etiquetas o visibilidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CambiosMarcador" }
+      responses:
+        "200":
+          description: Marcador actualizado.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Marcador" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "415": { $ref: "#/components/responses/TipoNoPermitido" }
+    delete:
+      tags: [Marcadores]
+      summary: Eliminar un marcador propio
+      responses:
+        "204": { description: Eliminado. }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+
+  /api/marcadores/exportar:
+    get:
+      tags: [Importar y exportar]
+      summary: Exportar mis marcadores (HTML de navegador)
+      responses:
+        "200":
+          description: Archivo en formato Netscape Bookmark, importable en cualquier navegador.
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: attachment; filename="marcadores-2026-11-17.html"
+          content:
+            text/html:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+  /api/marcadores/importar:
+    post:
+      tags: [Importar y exportar]
+      summary: Importar un archivo de marcadores del navegador
+      description: |
+        Máximo 2 MB y 1000 enlaces. Las URL internas o que no son http(s) se descartan.
+        Los duplicados se omiten. Se importan como privados y sin descargar vista previa.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+                  description: Archivo HTML exportado por el navegador.
+      responses:
+        "200":
+          description: Resumen de la importación.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultadoImportacion" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "413": { $ref: "#/components/responses/DemasiadoGrande" }
+        "415": { $ref: "#/components/responses/TipoNoPermitido" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+
+  /api/perfil:
+    get:
+      tags: [Perfil público]
+      summary: Mi nombre público
+      responses:
+        "200":
+          description: Nombre público (null si aún no eligió uno).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MiPerfil" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+    post:
+      tags: [Perfil público]
+      summary: Elegir un nombre público único
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [nombre]
+              properties:
+                nombre: { $ref: "#/components/schemas/NombrePerfil" }
+      responses:
+        "201":
+          description: Nombre reservado.
+          headers:
+            Location:
+              schema: { type: string }
+              example: /u/ana
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MiPerfil" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/OrigenNoPermitido" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+
+  /api/u/{nombre}/marcadores:
+    get:
+      tags: [Perfil público]
+      summary: Colección pública de una persona
+      description: Solo los marcadores con `publico = true`. No requiere sesión. Caché de 60 s en la CDN.
+      security: []
+      parameters:
+        - name: nombre
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/NombrePerfil" }
+        - $ref: "#/components/parameters/Limite"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Página de marcadores públicos.
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              example: public, s-maxage=60, stale-while-revalidate=300
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaMarcadores" }
+        "400": { $ref: "#/components/responses/Validacion" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
+
+  /api/cron/revisar-enlaces:
+    get:
+      tags: [Tareas programadas]
+      summary: Revisar enlaces rotos (Vercel Cron)
+      description: Revisa los 50 enlaces que llevan más tiempo sin comprobarse. Se ejecuta a diario (`vercel.json`).
+      security:
+        - secretoCron: []
+      responses:
+        "200":
+          description: Resumen de la revisión.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revisados, rotos]
+                properties:
+                  revisados: { type: integer, minimum: 0 }
+                  rotos: { type: integer, minimum: 0 }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+components:
+  securitySchemes:
+    cookieSesion:
+      type: apiKey
+      in: cookie
+      name: sesion
+      description: Cookie HttpOnly creada con POST /api/auth/sesion.
+    bearerIdToken:
+      type: http
+      scheme: bearer
+      description: idToken de Firebase Auth (para Bruno o Postman).
+    secretoCron:
+      type: http
+      scheme: bearer
+      description: El valor de la variable CRON_SECRET.
+
+  parameters:
+    Limite:
+      name: limite
+      in: query
+      description: Elementos por página.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Cursor:
+      name: cursor
+      in: query
+      description: Valor de `siguienteCursor` de la página anterior.
+      schema: { $ref: "#/components/schemas/IdMarcador" }
+
+  schemas:
+    IdMarcador:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+      description: SHA-256 (hex) de la URL normalizada; evita duplicados.
+    Etiqueta:
+      type: string
+      pattern: "^[a-z0-9áéíóúüñ-]{1,30}$"
+      example: diseño
+    NombrePerfil:
+      type: string
+      pattern: "^[a-z0-9_-]{3,30}$"
+      example: ana
+    Marcador:
+      type: object
+      required: [id, url, titulo, descripcion, imagenUrl, etiquetas, publico, estado, creadoEn]
+      properties:
+        id: { $ref: "#/components/schemas/IdMarcador" }
+        url: { type: string, format: uri, example: "https://zod.dev/" }
+        titulo:
+          type: string
+          maxLength: 300
+          description: Texto no confiable; los clientes deben mostrarlo como texto.
+        descripcion: { type: [string, "null"], maxLength: 1000 }
+        imagenUrl: { type: [string, "null"], format: uri, description: Solo https y hosts públicos. }
+        etiquetas:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/Etiqueta" }
+        publico: { type: boolean }
+        estado: { type: string, enum: [ok, roto] }
+        creadoEn: { type: string, format: date-time }
+    NuevoMarcador:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+          maxLength: 2048
+          description: http/https hacia un host público.
+          example: "https://zod.dev/?utm_source=boletin"
+        titulo:
+          type: string
+          maxLength: 300
+          description: Opcional; si se omite se usa el de la vista previa.
+        etiquetas:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          default: []
+          items: { $ref: "#/components/schemas/Etiqueta" }
+        publico: { type: boolean, default: false }
+    CambiosMarcador:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        titulo: { type: string, minLength: 1, maxLength: 300 }
+        etiquetas:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/Etiqueta" }
+        publico: { type: boolean }
+    PaginaMarcadores:
+      type: object
+      required: [items, siguienteCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Marcador" }
+        siguienteCursor:
+          oneOf:
+            - $ref: "#/components/schemas/IdMarcador"
+            - type: "null"
+    CrearSesion:
+      type: object
+      additionalProperties: false
+      required: [idToken]
+      properties:
+        idToken: { type: string, maxLength: 4096 }
+    Usuario:
+      type: object
+      required: [uid, correo, rol]
+      properties:
+        uid: { type: string }
+        correo: { type: [string, "null"], format: email }
+        rol: { type: string, enum: [usuario, admin] }
+    MiPerfil:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          oneOf:
+            - $ref: "#/components/schemas/NombrePerfil"
+            - type: "null"
+    ResultadoImportacion:
+      type: object
+      required: [importados, duplicados, invalidos]
+      properties:
+        importados: { type: integer, minimum: 0 }
+        duplicados: { type: integer, minimum: 0 }
+        invalidos: { type: integer, minimum: 0 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        detalles:
+          type: array
+          items:
+            type: object
+            required: [campo, mensaje]
+            properties:
+              campo: { type: string, example: url }
+              mensaje: { type: string, example: No se permiten enlaces a direcciones internas o locales. }
+
+  responses:
+    Validacion:
+      description: Datos no válidos (detalle por campo).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: Los datos enviados no son válidos.
+            detalles:
+              - campo: url
+                mensaje: No se permiten enlaces a direcciones internas o locales.
+    NoAutenticado:
+      description: Falta la sesión o no es válida.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: Inicia sesión para continuar. }
+    OrigenNoPermitido:
+      description: La cabecera Origin no es la del sitio (defensa CSRF).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: Origen de la solicitud no permitido. }
+    NoEncontrado:
+      description: No existe o pertenece a otra persona (no se revela cuál).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: No encontramos ese marcador. }
+    Conflicto:
+      description: Duplicado o nombre ocupado.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: Ya guardaste este enlace. }
+    DemasiadoGrande:
+      description: El cuerpo supera el tamaño permitido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TipoNoPermitido:
+      description: Content-Type no admitido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    DemasiadasSolicitudes:
+      description: Límite de frecuencia superado.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Segundos para volver a intentar.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ErrorInterno:
+      description: Error inesperado (sin detalles internos).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: Error interno del servidor. }

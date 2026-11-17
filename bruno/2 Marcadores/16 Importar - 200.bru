@@ -1,0 +1,27 @@
+meta {
+  name: Importar - 200
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores/importar
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:multipart-form {
+  archivo: @file(archivos/marcadores-navegador.html)
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Importa un HTML exportado por el navegador. La URL interna del archivo se descarta (invalidos: 1).
+}

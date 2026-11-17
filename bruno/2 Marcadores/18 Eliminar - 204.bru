@@ -1,0 +1,19 @@
+meta {
+  name: Eliminar - 204
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{baseUrl}}/api/marcadores/{{marcadorId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+assert {
+  res.status: eq 204
+}

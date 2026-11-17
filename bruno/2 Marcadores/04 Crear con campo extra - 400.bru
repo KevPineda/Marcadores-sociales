@@ -1,0 +1,30 @@
+meta {
+  name: Crear con campo extra - 400
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "url": "https://web.dev/",
+    "uid": "otro-usuario"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  Validación estricta: evita mass assignment.
+}

@@ -31,3 +31,10 @@ describe("nuevoMarcadorSchema", () => {
     expect(nuevoMarcadorSchema.safeParse({ ...VALIDO, etiquetas: once }).success).toBe(false);
   });
 });
+
+describe("mensajes de Zod", () => {
+  it("están en español también para los errores genéricos", () => {
+    const resultado = nuevoMarcadorSchema.safeParse({});
+    expect(resultado.error?.issues[0]?.message).toMatch(/entrada inválida|se esperaba/i);
+  });
+});

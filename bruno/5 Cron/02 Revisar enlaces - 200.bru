@@ -1,0 +1,19 @@
+meta {
+  name: Revisar enlaces - 200
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/cron/revisar-enlaces
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{cronSecret}}
+}
+
+assert {
+  res.status: eq 200
+}

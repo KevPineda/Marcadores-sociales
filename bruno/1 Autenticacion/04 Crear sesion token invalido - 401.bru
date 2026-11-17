@@ -1,0 +1,25 @@
+meta {
+  name: Crear sesion token invalido - 401
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sesion
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+body:json {
+  {
+    "idToken": "token-inventado"
+  }
+}
+
+assert {
+  res.status: eq 401
+}

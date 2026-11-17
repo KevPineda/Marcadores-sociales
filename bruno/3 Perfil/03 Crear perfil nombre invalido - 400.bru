@@ -1,0 +1,25 @@
+meta {
+  name: Crear perfil nombre invalido - 400
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/perfil
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "nombre": "Nombre Con Espacios!"
+  }
+}
+
+assert {
+  res.status: eq 400
+}

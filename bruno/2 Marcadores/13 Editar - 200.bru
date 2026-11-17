@@ -1,0 +1,26 @@
+meta {
+  name: Editar - 200
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{baseUrl}}/api/marcadores/{{marcadorId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {
+    "titulo": "Zod: validación con TypeScript",
+    "publico": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}

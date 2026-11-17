@@ -1,0 +1,23 @@
+meta {
+  name: Importar JSON - 415
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores/importar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 415
+}

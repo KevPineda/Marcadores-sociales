@@ -1,0 +1,25 @@
+meta {
+  name: Crear perfil sin sesion - 401
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/perfil
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: {{baseUrl}}
+}
+
+body:json {
+  {
+    "nombre": "{{nombrePublico}}"
+  }
+}
+
+assert {
+  res.status: eq 401
+}

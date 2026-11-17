@@ -1,0 +1,29 @@
+meta {
+  name: Crear origen ajeno - 403
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/marcadores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+headers {
+  Origin: https://malicioso.example
+}
+
+body:json {
+  {
+    "url": "https://web.dev/"
+  }
+}
+
+assert {
+  res.status: eq 403
+}

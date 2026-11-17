@@ -1,4 +1,31 @@
 {
-  "indexes": [],
-  "fieldOverrides": []
+  "indexes": [
+    {
+      "collectionGroup": "marcadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "etiquetas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "marcadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publico", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "marcadores",
+      "fieldPath": "revisadoEn",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }
