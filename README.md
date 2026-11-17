@@ -53,9 +53,20 @@ calidad/            # evidencias de calidad (Hito 4)
 ## Estado por hito
 
 - [x] **Hito 1:** lista de marcadores de ejemplo con tarjetas de vista previa, búsqueda y filtro por etiqueta; carga con `fetch` validada con Zod; estados de carga, vacío, error y reintento; configuración de IA.
-- [ ] **Hito 2:** rutas `/guardar`, `/etiquetas/[etiqueta]`, `/u/[nombre]` y formularios.
+- [x] **Hito 2:** rutas `/guardar`, `/etiquetas/[etiqueta]` y `/u/[nombre]`; formulario controlado validado con el esquema Zod compartido; normalización de URL, detección de duplicados y validación SSRF con pruebas. Los enlaces nuevos se guardan temporalmente en `localStorage` hasta el Hito 3.
 - [ ] **Hito 3:** API REST por capas con Firestore, `openapi.yaml` y colección Bruno.
 - [ ] **Hito 4:** Firebase Auth, seguridad, evidencias de calidad y despliegue en Vercel.
+
+## Rutas
+
+| Ruta                    | Contenido                                                      |
+|-------------------------|----------------------------------------------------------------|
+| `/`                     | Mis marcadores: búsqueda, filtro por etiqueta (`?q=&etiqueta=`) |
+| `/guardar`              | Guardar un enlace                                              |
+| `/etiquetas/[etiqueta]` | Marcadores de una etiqueta                                     |
+| `/u/[nombre]`           | Colección pública (ejemplo: `/u/demo`)                         |
+
+**Limitación conocida:** con Cache Components, una etiqueta o un perfil inexistente muestra la página 404 pero responde `200` con `<meta name="robots" content="noindex">`, porque el estado HTTP ya se envió al empezar el streaming (ver `node_modules/next/dist/docs/01-app/02-guides/streaming.md`, sección *Status codes*).
 
 ## Configuración de IA
 

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Marcador } from "@/schemas/marcador";
 import { obtenerDominio } from "@/services/filtrar-marcadores";
 import styles from "./TarjetaMarcador.module.css";
@@ -44,8 +45,10 @@ export function TarjetaMarcador({ marcador }: Props): React.JSX.Element {
         {marcador.etiquetas.length > 0 && (
           <ul className={styles.etiquetas} aria-label="Etiquetas">
             {marcador.etiquetas.map((etiqueta) => (
-              <li key={etiqueta} className={styles.etiqueta}>
-                #{etiqueta}
+              <li key={etiqueta}>
+                <Link href={`/etiquetas/${encodeURIComponent(etiqueta)}`} className={styles.etiqueta}>
+                  #{etiqueta}
+                </Link>
               </li>
             ))}
           </ul>

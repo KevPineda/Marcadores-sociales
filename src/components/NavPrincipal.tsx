@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./NavPrincipal.module.css";
 
-const ENLACES = [{ href: "/", texto: "Mis marcadores" }] as const;
+const ENLACES = [
+  { href: "/", texto: "Mis marcadores" },
+  { href: "/guardar", texto: "Guardar" },
+  { href: "/u/demo", texto: "Colección pública" },
+] as const;
 
 /** Navegación principal; marca la página actual con aria-current. */
 export function NavPrincipal(): React.JSX.Element {

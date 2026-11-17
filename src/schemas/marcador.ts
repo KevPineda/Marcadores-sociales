@@ -34,3 +34,6 @@ export const busquedaSchema = z.strictObject({
 });
 
 export type Busqueda = z.infer<typeof busquedaSchema>;
+
+/** Nombre público de un perfil (/u/[nombre]): minúsculas, números, guion y guion bajo. */
+export const nombrePerfilSchema = z.string().regex(/^[a-z0-9_-]{3,30}$/, "Nombre de perfil no válido.");

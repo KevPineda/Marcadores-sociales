@@ -5,4 +5,8 @@ import { afterEach } from "vitest";
 // Sin `globals: true`, Testing Library no limpia el DOM sola entre pruebas.
 afterEach(() => {
   cleanup();
+  // Las pruebas de ia/ corren en entorno node, donde no hay window.
+  if (typeof window !== "undefined") {
+    window.localStorage.clear();
+  }
 });

@@ -229,3 +229,17 @@ main:focus {
     scroll-behavior: auto !important; /* Justificado: ídem. */
   }
 }
+
+/* ===== Páginas internas ===== */
+.volver,
+.subtitulo {
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-texto-suave);
+}
+
+.volver a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}

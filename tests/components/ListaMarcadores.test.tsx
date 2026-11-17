@@ -92,6 +92,26 @@ describe("ListaMarcadores", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("no tienen el formato esperado");
   });
 
+  it("con etiqueta fija muestra solo esa etiqueta, oculta el filtro y no la pone en la URL", async () => {
+    simularFetch(MARCADORES_PRUEBA);
+    render(<ListaMarcadores busquedaInicial={{ q: "", etiqueta: "javascript" }} etiquetaFija="javascript" />);
+
+    expect(await screen.findAllByRole("article")).toHaveLength(2);
+    expect(screen.queryByRole("group", { name: "Filtrar por etiqueta" })).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
+  });
+
+  it("suma los marcadores guardados en este navegador", async () => {
+    simularFetch(MARCADORES_PRUEBA);
+    const local = { ...MARCADORES_PRUEBA[0], id: "local-1", titulo: "Guardado localmente", creadoEn: "2026-12-01T00:00:00Z" };
+    window.localStorage.setItem("marcadores-sociales:locales", JSON.stringify([local]));
+    render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
+
+    const tarjetas = await screen.findAllByRole("article");
+    expect(tarjetas).toHaveLength(4);
+    expect(tarjetas[0]).toHaveAccessibleName(/guardado localmente/i);
+  });
+
   it("muestra el error de validación junto al campo", async () => {
     simularFetch(MARCADORES_PRUEBA);
     const usuario = userEvent.setup();

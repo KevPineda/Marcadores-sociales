@@ -11,7 +11,11 @@ import { busquedaSchema, type Busqueda, type Marcador } from "@/schemas/marcador
 import { contarEtiquetas, filtrarMarcadores } from "@/services/filtrar-marcadores";
 import styles from "./ListaMarcadores.module.css";
 
-type Props = { busquedaInicial: Busqueda };
+type Props = {
+  busquedaInicial: Busqueda;
+  /** Si se indica, la lista queda limitada a esa etiqueta y se oculta el filtro. */
+  etiquetaFija?: string;
+};
 
 /** Lista vacía estable (evita recalcular los useMemo mientras carga). */
 const SIN_MARCADORES: Marcador[] = [];
@@ -48,18 +52,20 @@ function textoResultados(visibles: number, total: number): string {
 }
 
 /** Lista de marcadores con búsqueda, filtro por etiqueta y estados de carga, vacío y error. */
-export function ListaMarcadores({ busquedaInicial }: Props): React.JSX.Element {
+export function ListaMarcadores({ busquedaInicial, etiquetaFija }: Props): React.JSX.Element {
   const carga = useCargarMarcadores();
   const [texto, setTexto] = useState(busquedaInicial.q);
-  const [etiqueta, setEtiqueta] = useState(busquedaInicial.etiqueta);
+  const [etiquetaElegida, setEtiqueta] = useState(busquedaInicial.etiqueta);
   const textoDiferido = useDebounce(texto);
 
+  const etiqueta = etiquetaFija ?? etiquetaElegida;
   const errorTexto = validarTexto(texto);
   const busqueda: Busqueda = { q: validarTexto(textoDiferido) ? "" : textoDiferido.trim(), etiqueta };
+  const etiquetaEnUrl = etiquetaFija ? null : busqueda.etiqueta;
 
   useEffect(() => {
-    sincronizarUrl({ q: busqueda.q, etiqueta: busqueda.etiqueta });
-  }, [busqueda.q, busqueda.etiqueta]);
+    sincronizarUrl({ q: busqueda.q, etiqueta: etiquetaEnUrl });
+  }, [busqueda.q, etiquetaEnUrl]);
 
   const marcadores = carga.estado === "listo" ? carga.marcadores : SIN_MARCADORES;
   const etiquetas = useMemo(() => contarEtiquetas(marcadores), [marcadores]);
@@ -67,7 +73,7 @@ export function ListaMarcadores({ busquedaInicial }: Props): React.JSX.Element {
     () => filtrarMarcadores(marcadores, { q: busqueda.q, etiqueta: busqueda.etiqueta }),
     [marcadores, busqueda.q, busqueda.etiqueta],
   );
-  const hayFiltros = busqueda.q !== "" || busqueda.etiqueta !== null;
+  const hayFiltros = busqueda.q !== "" || etiquetaEnUrl !== null;
 
   /** Quita la búsqueda y la etiqueta seleccionada. */
   function limpiarFiltros(): void {
@@ -79,7 +85,7 @@ export function ListaMarcadores({ busquedaInicial }: Props): React.JSX.Element {
     <div className={styles.contenedor}>
       <div className={styles.controles}>
         <BuscadorMarcadores valor={texto} error={errorTexto} onCambiar={setTexto} />
-        {carga.estado === "listo" && etiquetas.length > 0 && (
+        {carga.estado === "listo" && !etiquetaFija && etiquetas.length > 0 && (
           <FiltroEtiquetas etiquetas={etiquetas} seleccionada={etiqueta} onSeleccionar={setEtiqueta} />
         )}
       </div>

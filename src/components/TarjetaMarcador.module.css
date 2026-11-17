@@ -76,11 +76,19 @@
 }
 
 .etiqueta {
-  padding: 0.125rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.125rem 0.625rem;
   border-radius: 999px;
   font-size: 0.875rem;
   background: var(--color-superficie-alta);
   color: var(--color-texto);
+  text-decoration: none;
+}
+
+.etiqueta:hover {
+  text-decoration: underline;
 }
 
 .pie {

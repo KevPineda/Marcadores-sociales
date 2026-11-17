@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { leerMarcadoresLocales } from "@/lib/almacen-local";
 import { cargarMarcadores, ErrorCarga } from "@/lib/cargar-marcadores";
 import type { Marcador } from "@/schemas/marcador";
 
@@ -13,6 +14,17 @@ export type ResultadoCarga = EstadoCarga & { reintentar: () => void };
 
 const MENSAJE_INESPERADO = "Ocurrió un error inesperado al cargar los marcadores.";
 
+/** Suma los marcadores guardados en este navegador y ordena del más reciente al más antiguo. */
+function combinarConLocales(remotos: Marcador[]): Marcador[] {
+  const porId = new Map<string, Marcador>();
+  for (const marcador of [...leerMarcadoresLocales(), ...remotos]) {
+    if (!porId.has(marcador.id)) {
+      porId.set(marcador.id, marcador);
+    }
+  }
+  return [...porId.values()].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
+}
+
 /** Carga los marcadores al montar y expone el estado de la carga y un reintento. */
 export function useCargarMarcadores(): ResultadoCarga {
   const [intento, setIntento] = useState(0);
@@ -21,7 +33,7 @@ export function useCargarMarcadores(): ResultadoCarga {
   useEffect(() => {
     const controlador = new AbortController();
     cargarMarcadores(controlador.signal)
-      .then((marcadores) => setCarga({ estado: "listo", marcadores }))
+      .then((marcadores) => setCarga({ estado: "listo", marcadores: combinarConLocales(marcadores) }))
       .catch((error: unknown) => {
         if (controlador.signal.aborted) {
           return;
