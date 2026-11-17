@@ -1,0 +1,66 @@
+import Image from "next/image";
+import type { Marcador } from "@/schemas/marcador";
+import { obtenerDominio } from "@/services/filtrar-marcadores";
+import styles from "./TarjetaMarcador.module.css";
+
+const formatoFecha = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeZone: "UTC" });
+
+type Props = { marcador: Marcador };
+
+/** Tarjeta con la vista previa de un marcador. Título y descripción se muestran como texto. */
+export function TarjetaMarcador({ marcador }: Props): React.JSX.Element {
+  const dominio = obtenerDominio(marcador.url);
+  const idTitulo = `titulo-${marcador.id}`;
+
+  return (
+    <article className={styles.tarjeta} aria-labelledby={idTitulo}>
+      <div className={styles.imagen}>
+        {marcador.imagenUrl ? (
+          <Image
+            src={marcador.imagenUrl}
+            alt=""
+            width={1200}
+            height={630}
+            sizes="(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw"
+          />
+        ) : (
+          <span className={styles.sinImagen} aria-hidden="true">
+            {dominio.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+
+      <div className={styles.cuerpo}>
+        <h3 id={idTitulo} className={styles.titulo}>
+          <a href={marcador.url} target="_blank" rel="noopener noreferrer">
+            {marcador.titulo}
+            <span className="visualmente-oculto"> (abre en una pestaña nueva)</span>
+          </a>
+        </h3>
+        <p className={styles.dominio}>{dominio}</p>
+
+        {marcador.descripcion && <p className={styles.descripcion}>{marcador.descripcion}</p>}
+
+        {marcador.etiquetas.length > 0 && (
+          <ul className={styles.etiquetas} aria-label="Etiquetas">
+            {marcador.etiquetas.map((etiqueta) => (
+              <li key={etiqueta} className={styles.etiqueta}>
+                #{etiqueta}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <footer className={styles.pie}>
+          <time dateTime={marcador.creadoEn}>Guardado el {formatoFecha.format(new Date(marcador.creadoEn))}</time>
+          <span className={styles.insignias}>
+            {!marcador.publico && <span className={styles.insignia}>🔒 Privado</span>}
+            {marcador.estado === "roto" && (
+              <span className={`${styles.insignia} ${styles.roto}`}>⚠ Enlace roto</span>
+            )}
+          </span>
+        </footer>
+      </div>
+    </article>
+  );
+}

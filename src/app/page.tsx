@@ -1,69 +1,44 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { EsqueletoTarjetas } from "@/components/EsqueletoTarjetas";
+import { ListaMarcadores } from "@/components/ListaMarcadores";
+import { busquedaSchema, type Busqueda } from "@/schemas/marcador";
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: { absolute: "Mis marcadores · Marcadores sociales" },
+  description: "Tus enlaces de estudio guardados, con vista previa, búsqueda y filtros por etiqueta.",
+};
+
+type ParametrosBusqueda = Record<string, string | string[] | undefined>;
+
+/** Toma el primer valor de un parámetro de la URL. */
+function primerValor(valor: string | string[] | undefined): string | undefined {
+  return Array.isArray(valor) ? valor[0] : valor;
+}
+
+/** Valida ?q= y ?etiqueta= con Zod; si algo no es válido se ignora. */
+function leerBusqueda(parametros: ParametrosBusqueda): Busqueda {
+  const validacion = busquedaSchema.safeParse({
+    q: primerValor(parametros.q) ?? "",
+    etiqueta: primerValor(parametros.etiqueta) ?? null,
+  });
+  return validacion.success ? validacion.data : { q: "", etiqueta: null };
+}
+
+/** Lee los parámetros de la URL (dato de la petición, por eso va dentro de Suspense). */
+async function ListaConParametros({ searchParams }: { searchParams: Promise<ParametrosBusqueda> }) {
+  const busqueda = leerBusqueda(await searchParams);
+  return <ListaMarcadores busquedaInicial={busqueda} />;
+}
+
+/** Página de inicio: mis marcadores. */
+export default function PaginaInicio({ searchParams }: PageProps<"/">): React.JSX.Element {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <h1>Mis marcadores</h1>
+      <Suspense fallback={<EsqueletoTarjetas />}>
+        <ListaConParametros searchParams={searchParams} />
+      </Suspense>
+    </>
   );
 }

@@ -1,0 +1,40 @@
+.buscador {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.etiqueta {
+  font-weight: 600;
+}
+
+.campo {
+  min-height: 2.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-pequeno);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.campo[aria-invalid="true"] {
+  border-color: var(--color-error);
+  border-width: 2px;
+}
+
+.ayuda {
+  font-size: 0.875rem;
+  color: var(--color-texto-suave);
+}
+
+.error {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.error:empty {
+  display: none;
+}

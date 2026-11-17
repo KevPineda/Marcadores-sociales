@@ -1,0 +1,52 @@
+.grupo {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.leyenda {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 600;
+}
+
+.lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.boton {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-borde-control);
+  border-radius: 999px;
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.boton:hover {
+  border-color: var(--color-acento);
+}
+
+/* Activo: cambia color, borde y peso (no solo el color). */
+.boton[aria-pressed="true"] {
+  border: 2px solid var(--color-acento);
+  background: var(--color-acento);
+  color: var(--color-sobre-acento);
+  font-weight: 700;
+}
+
+.boton[aria-pressed="true"]::before {
+  content: "✓ ";
+}
+
+.total {
+  font-size: 0.875rem;
+}

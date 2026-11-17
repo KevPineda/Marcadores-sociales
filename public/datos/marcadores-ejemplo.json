@@ -1,0 +1,129 @@
+[
+  {
+    "id": "m01",
+    "url": "https://developer.mozilla.org/es/docs/Web/API/Fetch_API/Using_Fetch",
+    "titulo": "Uso de Fetch – MDN",
+    "descripcion": "Guía para hacer solicitudes HTTP con la API Fetch: peticiones, respuestas, encabezados y manejo de errores.",
+    "imagenUrl": "/ejemplo/mdn-fetch.svg",
+    "etiquetas": [
+      "javascript",
+      "api",
+      "mdn"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-02T14:10:00Z"
+  },
+  {
+    "id": "m02",
+    "url": "https://web.dev/articles/vitals",
+    "titulo": "Métricas web esenciales (Core Web Vitals)",
+    "descripcion": "Qué son LCP, INP y CLS, cómo medirlas y qué umbrales se consideran buenos.",
+    "imagenUrl": "/ejemplo/web-dev-vitals.svg",
+    "etiquetas": [
+      "rendimiento",
+      "web-vitals"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-03T09:25:00Z"
+  },
+  {
+    "id": "m03",
+    "url": "https://nextjs.org/docs/app",
+    "titulo": "Next.js App Router",
+    "descripcion": "Documentación oficial del App Router: rutas, layouts, Server Components y obtención de datos.",
+    "imagenUrl": "/ejemplo/nextjs-app-router.svg",
+    "etiquetas": [
+      "nextjs",
+      "react"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-04T18:40:00Z"
+  },
+  {
+    "id": "m04",
+    "url": "https://owasp.org/www-community/attacks/Server_Side_Request_Forgery",
+    "titulo": "Server Side Request Forgery (SSRF) – OWASP",
+    "descripcion": "Cómo funciona un ataque SSRF y cómo prevenirlo validando las URL que el servidor descarga.",
+    "imagenUrl": "/ejemplo/owasp-ssrf.svg",
+    "etiquetas": [
+      "seguridad",
+      "api"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-05T11:05:00Z"
+  },
+  {
+    "id": "m05",
+    "url": "https://css-tricks.com/snippets/css/complete-guide-grid/",
+    "titulo": "Guía completa de CSS Grid",
+    "descripcion": "Referencia visual de todas las propiedades de Grid para contenedores y elementos.",
+    "imagenUrl": "/ejemplo/css-grid.svg",
+    "etiquetas": [
+      "css",
+      "diseño"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-06T16:30:00Z"
+  },
+  {
+    "id": "m06",
+    "url": "https://zod.dev/",
+    "titulo": "Zod – validación con TypeScript",
+    "descripcion": "Esquemas de validación con inferencia de tipos, útiles tanto en el cliente como en el servidor.",
+    "imagenUrl": "/ejemplo/zod-docs.svg",
+    "etiquetas": [
+      "typescript",
+      "validación"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-08T08:15:00Z"
+  },
+  {
+    "id": "m07",
+    "url": "https://www.w3.org/WAI/WCAG22/quickref/",
+    "titulo": "Referencia rápida de WCAG 2.2",
+    "descripcion": "Lista filtrable de los criterios de éxito de WCAG 2.2 con técnicas y fallos comunes.",
+    "imagenUrl": null,
+    "etiquetas": [
+      "accesibilidad",
+      "wcag"
+    ],
+    "publico": true,
+    "estado": "ok",
+    "creadoEn": "2026-11-09T13:50:00Z"
+  },
+  {
+    "id": "m08",
+    "url": "https://testing-library.com/docs/queries/about",
+    "titulo": "Consultas de Testing Library",
+    "descripcion": "Por qué consultar por rol y etiqueta, como lo haría una persona usuaria.",
+    "imagenUrl": null,
+    "etiquetas": [
+      "pruebas",
+      "react",
+      "accesibilidad"
+    ],
+    "publico": false,
+    "estado": "ok",
+    "creadoEn": "2026-11-11T10:00:00Z"
+  },
+  {
+    "id": "m09",
+    "url": "https://ejemplo-curso-antiguo.com/tutorial-flexbox",
+    "titulo": "Tutorial de Flexbox (curso antiguo)",
+    "descripcion": null,
+    "imagenUrl": null,
+    "etiquetas": [
+      "css"
+    ],
+    "publico": true,
+    "estado": "roto",
+    "creadoEn": "2026-11-12T19:20:00Z"
+  }
+]

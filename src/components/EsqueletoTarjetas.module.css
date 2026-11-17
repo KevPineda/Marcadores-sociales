@@ -1,0 +1,43 @@
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+  background: var(--color-superficie);
+}
+
+.imagen,
+.linea {
+  background: var(--color-superficie-alta);
+  animation: pulso 1.4s ease-in-out infinite;
+}
+
+.imagen {
+  aspect-ratio: 1200 / 630;
+}
+
+.linea {
+  height: 1rem;
+  margin-inline: 1rem;
+  border-radius: var(--radio-pequeno);
+}
+
+.corta {
+  width: 60%;
+}
+
+@keyframes pulso {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imagen,
+  .linea {
+    animation: none;
+  }
+}
