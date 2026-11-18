@@ -2,6 +2,8 @@
 
 Guarda enlaces con etiquetas y vista previa automática (título, descripción, imagen) y compártelos.
 
+**Producción:** URL_PRODUCCION
+
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · CSS Modules · Zod · Firebase (Auth + Firestore vía Admin SDK) · Vitest · Vercel.
 
 ## Requisitos
@@ -18,7 +20,7 @@ npm run dev                    # http://localhost:3000
 ```
 
 Complete `.env.local` con la configuración de Firebase (ver comentarios en `.env.example`). **Nunca** lo suba a Git.
-En el Hito 1 la aplicación funciona sin variables de entorno: usa los datos de ejemplo de `public/datos/marcadores-ejemplo.json`.
+La forma más rápida es el script `scripts/configurar-entorno.mjs` (ver *Configurar Firebase*), que llena `.env.local` sin mostrar ningún secreto.
 
 ## Scripts
 
@@ -39,15 +41,17 @@ En el Hito 1 la aplicación funciona sin variables de entorno: usa los datos de 
 src/
 ├── app/            # rutas, layout, loading, error, not-found
 ├── components/     # UI reutilizable (cada uno con su .module.css)
+├── proxy.ts        # redirige a /login sin cookie (comodidad, no seguridad)
 ├── hooks/          # useDebounce, useCargarMarcadores
 ├── schemas/        # esquemas Zod compartidos por cliente y servidor
 ├── services/       # reglas de negocio puras (filtrado, etiquetas)
 ├── repositories/   # acceso a Firestore (Hito 3)
-└── lib/            # carga de datos, Firebase, utilidades
+└── lib/            # Firebase (cliente y admin), auth, cliente de la API, http, errores
 tests/              # unit · components · api · integration
 ia/                 # configuración de IA: evidencias, pruebas y bitácora
 bruno/              # colección de solicitudes (Hito 3)
-calidad/            # evidencias de calidad (Hito 4)
+calidad/            # evidencias de calidad (ver CALIDAD.md)
+scripts/            # configurar-entorno.mjs
 ```
 
 ## Estado por hito
@@ -55,22 +59,26 @@ calidad/            # evidencias de calidad (Hito 4)
 - [x] **Hito 1:** lista de marcadores de ejemplo con tarjetas de vista previa, búsqueda y filtro por etiqueta; carga con `fetch` validada con Zod; estados de carga, vacío, error y reintento; configuración de IA.
 - [x] **Hito 2:** rutas `/guardar`, `/etiquetas/[etiqueta]` y `/u/[nombre]`; formulario controlado validado con el esquema Zod compartido; normalización de URL, detección de duplicados y validación SSRF con pruebas. Los enlaces nuevos se guardan temporalmente en `localStorage` hasta el Hito 3.
 - [x] **Hito 3:** API REST por capas (Route Handler → servicio → repositorio) con Firestore, sesión por cookie HttpOnly o Bearer, extracción Open Graph segura (SSRF, tiempo, tamaño y redirecciones), importar/exportar HTML de navegador, revisión de enlaces rotos con Vercel Cron, `openapi.yaml`, colección Bruno y pruebas de API e integración.
-- [ ] **Hito 4:** Firebase Auth, seguridad, evidencias de calidad y despliegue en Vercel.
+- [x] **Hito 4:** inicio de sesión y registro con Firebase Auth (cookie HttpOnly, el navegador no guarda tokens), `proxy.ts`, interfaz conectada a la API (cargar más, borrado optimista con `useOptimistic`, perfil público), colección pública leída de Firestore, cabeceras de seguridad (CSP, nosniff, Referrer-Policy, HSTS), evidencias de calidad en [`CALIDAD.md`](CALIDAD.md) y despliegue en Vercel con Firestore.
 
 ## Rutas
 
 | Ruta                    | Contenido                                                      |
 |-------------------------|----------------------------------------------------------------|
+| `/login`                | Iniciar sesión o crear cuenta (correo y contraseña)            |
 | `/`                     | Mis marcadores: búsqueda, filtro por etiqueta (`?q=&etiqueta=`) |
 | `/guardar`              | Guardar un enlace                                              |
 | `/etiquetas/[etiqueta]` | Marcadores de una etiqueta                                     |
-| `/u/[nombre]`           | Colección pública (ejemplo: `/u/demo`)                         |
+| `/perfil`               | Elegir mi nombre público                                       |
+| `/u/[nombre]`           | Colección pública (sin sesión)                                 |
+
+`/`, `/guardar`, `/perfil` y `/etiquetas/*` piden sesión: `proxy.ts` redirige a `/login` si no hay cookie, y la API verifica la cookie en cada petición.
 
 **Limitaciones conocidas:**
 
-- La interfaz aún usa los datos de ejemplo y `localStorage`; se conecta a la API con el inicio de sesión (Hito 4).
+- La búsqueda de texto filtra en el navegador los marcadores ya cargados (100 por página, con «Cargar más»).
 - El límite de frecuencia es en memoria (por instancia de Vercel); la protección fuerte es una regla del Firewall de Vercel.
-- con Cache Components, una etiqueta o un perfil inexistente muestra la página 404 pero responde `200` con `<meta name="robots" content="noindex">`, porque el estado HTTP ya se envió al empezar el streaming (ver `node_modules/next/dist/docs/01-app/02-guides/streaming.md`, sección *Status codes*).
+- Con Cache Components, una etiqueta o un perfil inexistente muestra la página 404 pero responde `200` con `<meta name="robots" content="noindex">`, porque el estado HTTP ya se envió al empezar el streaming (ver `node_modules/next/dist/docs/01-app/02-guides/streaming.md`, sección *Status codes*).
 
 ## API REST
 
@@ -92,15 +100,27 @@ Documentación completa en [`openapi.yaml`](openapi.yaml) (ábrala en https://ed
 
 ### Configurar Firebase
 
-1. En la consola de Firebase: **Authentication → Email/Password** habilitado y **Firestore** en modo producción.
-2. **Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada.** Copie `project_id`, `client_email` y `private_key` a `.env.local` y **borre el JSON descargado** (nunca lo guarde en el proyecto).
-3. Despliegue las reglas (niegan todo) y los índices:
+1. En la consola de Firebase: **Authentication → Correo electrónico/contraseña** habilitado.
+2. Cree Firestore y despliegue las reglas (niegan todo acceso directo) y los índices:
 
    ```bash
    npx firebase-tools login
-   npx firebase-tools use --add          # elija su proyecto
-   npx firebase-tools deploy --only firestore:rules,firestore:indexes
+   npx firebase-tools firestore:databases:create "(default)" --location=nam5 --project <id>
+   npx firebase-tools deploy --only firestore --project <id>
    ```
+
+3. **Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada.** Guarde el JSON en la raíz como `firebase-adminsdk.json` (Git lo ignora) y ejecute:
+
+   ```bash
+   npx vercel link                                                    # una vez
+   node scripts/configurar-entorno.mjs --cuenta firebase-adminsdk.json --vercel
+   ```
+
+   El script obtiene la configuración web con la CLI de Firebase, genera `CRON_SECRET`, escribe `.env.local` y sube las variables a Vercel (*production*) **sin imprimir ningún valor**. Después **borre el JSON**.
+
+### Desplegar
+
+Vercel está conectado al repositorio: cada `git push` a `main` despliega a producción. También se puede desplegar a mano con `npx vercel deploy --prod`. El cron diario (`vercel.json`) llama a `/api/cron/revisar-enlaces` con `Authorization: Bearer $CRON_SECRET`.
 
 ### Probar con Bruno
 

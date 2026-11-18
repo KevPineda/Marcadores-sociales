@@ -1,48 +1,58 @@
 import type { Metadata } from "next";
+import { cacheLife } from "next/cache";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { EsqueletoTarjetas } from "@/components/EsqueletoTarjetas";
 import { TarjetaMarcador } from "@/components/TarjetaMarcador";
-import { listarNombresPerfiles, obtenerMarcadoresPublicos, obtenerPerfilPublico } from "@/lib/datos-ejemplo";
-import { nombrePerfilSchema } from "@/schemas/marcador";
+import { ErrorApi } from "@/lib/errores";
+import { nombrePerfilSchema, type Marcador } from "@/schemas/marcador";
+import { listarColeccionPublica } from "@/services/perfiles";
 
 type Props = PageProps<"/u/[nombre]">;
 
-/** Prerenderiza los perfiles conocidos. */
-export function generateStaticParams(): Array<{ nombre: string }> {
-  return listarNombresPerfiles().map((nombre) => ({ nombre }));
+/**
+ * Marcadores públicos del perfil, en caché unos minutos (lectura pública).
+ * Devuelve null si el perfil no existe.
+ */
+async function cargarColeccion(nombre: string): Promise<Marcador[] | null> {
+  "use cache";
+  cacheLife("minutes");
+  try {
+    return (await listarColeccionPublica(nombre, { limite: 100 })).items;
+  } catch (error) {
+    if (error instanceof ErrorApi && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
-/** Título y descripción del perfil público. */
+/** Título de la pestaña con el nombre del perfil. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { nombre } = await params;
-  const perfil = nombrePerfilSchema.safeParse(nombre).success ? await obtenerPerfilPublico(nombre) : null;
-  if (!perfil) {
+  if (!nombrePerfilSchema.safeParse(nombre).success) {
     return { title: "Perfil no encontrado" };
   }
-  return {
-    title: `${perfil.nombreVisible} (@${perfil.nombre})`,
-    description: `Enlaces públicos guardados por @${perfil.nombre}.`,
-  };
+  return { title: `Colección de @${nombre}`, description: `Enlaces públicos guardados por @${nombre}.` };
 }
 
-/** Colección pública de una persona: Server Component sin JavaScript de cliente. */
-export default async function PaginaPerfil({ params }: Props): Promise<React.JSX.Element> {
+/** Lee el nombre de la URL (dato de la petición) y muestra la colección. */
+async function Coleccion({ params }: { params: Props["params"] }): Promise<React.JSX.Element> {
   const { nombre } = await params;
   if (!nombrePerfilSchema.safeParse(nombre).success) {
     notFound();
   }
-  const perfil = await obtenerPerfilPublico(nombre);
-  if (!perfil) {
+  const marcadores = await cargarColeccion(nombre);
+  if (!marcadores) {
     notFound();
   }
-  const marcadores = await obtenerMarcadoresPublicos(nombre);
 
   return (
     <>
-      <h1>{perfil.nombreVisible}</h1>
+      <h1>Colección de @{nombre}</h1>
       <p className="subtitulo">
-        @{perfil.nombre} · {marcadores.length} {marcadores.length === 1 ? "enlace público" : "enlaces públicos"}
+        {marcadores.length} {marcadores.length === 1 ? "enlace público" : "enlaces públicos"}
       </p>
-
       {marcadores.length === 0 ? (
         <p>Esta colección todavía no tiene enlaces públicos.</p>
       ) : (
@@ -60,5 +70,14 @@ export default async function PaginaPerfil({ params }: Props): Promise<React.JSX
         </section>
       )}
     </>
+  );
+}
+
+/** Colección pública de una persona: Server Component, sin sesión y sin JavaScript de cliente. */
+export default function PaginaColeccion({ params }: Props): React.JSX.Element {
+  return (
+    <Suspense fallback={<EsqueletoTarjetas />}>
+      <Coleccion params={params} />
+    </Suspense>
   );
 }

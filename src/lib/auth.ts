@@ -2,8 +2,9 @@ import "server-only";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { ErrorApi, errorNoAutenticado } from "@/lib/errores";
 import { obtenerAuth } from "@/lib/firebase-admin";
+import { NOMBRE_COOKIE_SESION } from "@/lib/sesion";
 
-export const NOMBRE_COOKIE_SESION = "sesion";
+export { NOMBRE_COOKIE_SESION };
 
 /** Duración de la cookie de sesión: 5 días (Firebase admite de 5 min a 2 semanas). */
 export const DURACION_SESION_MS = 5 * 24 * 60 * 60 * 1000;

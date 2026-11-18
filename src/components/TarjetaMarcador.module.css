@@ -119,3 +119,19 @@
   border-color: var(--color-error);
   color: var(--color-error);
 }
+
+.eliminar {
+  min-block-size: 2.75rem;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-pequeno);
+  background: transparent;
+  color: var(--color-error);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.eliminar:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}

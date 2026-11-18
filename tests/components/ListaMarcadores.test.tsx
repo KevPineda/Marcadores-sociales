@@ -6,6 +6,11 @@ import { MARCADORES_PRUEBA } from "../fixtures/marcadores";
 
 const SIN_BUSQUEDA = { q: "", etiqueta: null };
 
+/** Respuesta paginada de la API. */
+function pagina(items: unknown[], siguienteCursor: string | null = null): { items: unknown[]; siguienteCursor: string | null } {
+  return { items, siguienteCursor };
+}
+
 /** Simula fetch con una respuesta JSON. */
 function simularFetch(cuerpo: unknown, status = 200): ReturnType<typeof vi.fn> {
   const fetchSimulado = vi.fn().mockResolvedValue(
@@ -25,7 +30,7 @@ afterEach(() => {
 
 describe("ListaMarcadores", () => {
   it("muestra la carga y luego una tarjeta por marcador", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
 
     expect(screen.getByText("Cargando marcadores…")).toBeInTheDocument();
@@ -34,7 +39,7 @@ describe("ListaMarcadores", () => {
   });
 
   it("filtra al escribir en el buscador y actualiza la URL", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     const usuario = userEvent.setup();
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
     await screen.findAllByRole("article");
@@ -47,7 +52,7 @@ describe("ListaMarcadores", () => {
   });
 
   it("filtra por etiqueta e indica el botón activo con aria-pressed", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     const usuario = userEvent.setup();
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
     await screen.findAllByRole("article");
@@ -61,7 +66,7 @@ describe("ListaMarcadores", () => {
   });
 
   it("muestra el estado vacío y permite limpiar los filtros", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     const usuario = userEvent.setup();
     render(<ListaMarcadores busquedaInicial={{ q: "no-existe-nada", etiqueta: null }} />);
 
@@ -79,21 +84,21 @@ describe("ListaMarcadores", () => {
     const alerta = await screen.findByRole("alert");
     expect(alerta).toHaveTextContent("No pudimos cargar tus marcadores.");
 
-    fetchSimulado.mockResolvedValue(new Response(JSON.stringify(MARCADORES_PRUEBA), { status: 200 }));
+    fetchSimulado.mockResolvedValue(new Response(JSON.stringify(pagina(MARCADORES_PRUEBA)), { status: 200 }));
     await usuario.click(within(alerta).getByRole("button", { name: "Reintentar" }));
 
     expect(await screen.findAllByRole("article")).toHaveLength(3);
   });
 
   it("rechaza datos con formato inválido", async () => {
-    simularFetch([{ id: "x", url: "javascript:alert(1)" }]);
+    simularFetch(pagina([{ id: "x", url: "javascript:alert(1)" }]));
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("no tienen el formato esperado");
+    expect(await screen.findByRole("alert")).toHaveTextContent("no tiene el formato esperado");
   });
 
   it("con etiqueta fija muestra solo esa etiqueta, oculta el filtro y no la pone en la URL", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     render(<ListaMarcadores busquedaInicial={{ q: "", etiqueta: "javascript" }} etiquetaFija="javascript" />);
 
     expect(await screen.findAllByRole("article")).toHaveLength(2);
@@ -101,19 +106,50 @@ describe("ListaMarcadores", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("suma los marcadores guardados en este navegador", async () => {
-    simularFetch(MARCADORES_PRUEBA);
-    const local = { ...MARCADORES_PRUEBA[0], id: "local-1", titulo: "Guardado localmente", creadoEn: "2026-12-01T00:00:00Z" };
-    window.localStorage.setItem("marcadores-sociales:locales", JSON.stringify([local]));
+  it("pide la lista a la API con la cookie de sesión", async () => {
+    const fetchSimulado = simularFetch(pagina(MARCADORES_PRUEBA));
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
+    await screen.findAllByRole("article");
 
-    const tarjetas = await screen.findAllByRole("article");
-    expect(tarjetas).toHaveLength(4);
-    expect(tarjetas[0]).toHaveAccessibleName(/guardado localmente/i);
+    const [ruta, opciones] = fetchSimulado.mock.calls[0] as [string, RequestInit];
+    expect(ruta).toBe("/api/marcadores?limite=100");
+    expect(opciones.credentials).toBe("same-origin");
+  });
+
+  it("carga la siguiente página con el cursor", async () => {
+    const fetchSimulado = simularFetch(pagina(MARCADORES_PRUEBA.slice(0, 2), "c".repeat(64)));
+    const usuario = userEvent.setup();
+    render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
+    expect(await screen.findAllByRole("article")).toHaveLength(2);
+
+    fetchSimulado.mockResolvedValue(new Response(JSON.stringify(pagina(MARCADORES_PRUEBA.slice(2))), { status: 200 }));
+    await usuario.click(screen.getByRole("button", { name: "Cargar más marcadores" }));
+
+    expect(await screen.findAllByRole("article")).toHaveLength(3);
+    expect(fetchSimulado.mock.calls[1]?.[0]).toBe(`/api/marcadores?limite=100&cursor=${"c".repeat(64)}`);
+    expect(screen.queryByRole("button", { name: "Cargar más marcadores" })).not.toBeInTheDocument();
+  });
+
+  it("elimina con actualización optimista y la tarjeta vuelve si la API falla", async () => {
+    const fetchSimulado = simularFetch(pagina(MARCADORES_PRUEBA));
+    vi.stubGlobal("confirm", () => true);
+    const usuario = userEvent.setup();
+    render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
+    await screen.findAllByRole("article");
+
+    fetchSimulado.mockResolvedValue(new Response(null, { status: 204 }));
+    await usuario.click(screen.getByRole("button", { name: /eliminar.*uso de fetch/i }));
+    await vi.waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(2));
+    expect(fetchSimulado).toHaveBeenLastCalledWith("/api/marcadores/m1", expect.objectContaining({ method: "DELETE" }));
+
+    fetchSimulado.mockResolvedValue(new Response(JSON.stringify({ error: "Falla" }), { status: 500 }));
+    await usuario.click(screen.getByRole("button", { name: /eliminar.*métricas web esenciales/i }));
+    expect(await screen.findByText(/no se pudo eliminar «métricas web esenciales»/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("article")).toHaveLength(2);
   });
 
   it("muestra el error de validación junto al campo", async () => {
-    simularFetch(MARCADORES_PRUEBA);
+    simularFetch(pagina(MARCADORES_PRUEBA));
     const usuario = userEvent.setup();
     render(<ListaMarcadores busquedaInicial={SIN_BUSQUEDA} />);
 

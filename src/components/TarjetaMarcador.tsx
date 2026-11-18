@@ -6,10 +6,14 @@ import styles from "./TarjetaMarcador.module.css";
 
 const formatoFecha = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeZone: "UTC" });
 
-type Props = { marcador: Marcador };
+type Props = {
+  marcador: Marcador;
+  /** Si se indica, la tarjeta muestra el botón «Eliminar» (solo en mis marcadores). */
+  onEliminar?: (marcador: Marcador) => void;
+};
 
 /** Tarjeta con la vista previa de un marcador. Título y descripción se muestran como texto. */
-export function TarjetaMarcador({ marcador }: Props): React.JSX.Element {
+export function TarjetaMarcador({ marcador, onEliminar }: Props): React.JSX.Element {
   const dominio = obtenerDominio(marcador.url);
   const idTitulo = `titulo-${marcador.id}`;
 
@@ -20,6 +24,7 @@ export function TarjetaMarcador({ marcador }: Props): React.JSX.Element {
           <Image
             src={marcador.imagenUrl}
             alt=""
+            unoptimized
             width={1200}
             height={630}
             sizes="(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw"
@@ -62,6 +67,11 @@ export function TarjetaMarcador({ marcador }: Props): React.JSX.Element {
               <span className={`${styles.insignia} ${styles.roto}`}>⚠ Enlace roto</span>
             )}
           </span>
+          {onEliminar && (
+            <button type="button" className={styles.eliminar} onClick={() => onEliminar(marcador)}>
+              Eliminar<span className="visualmente-oculto"> «{marcador.titulo}»</span>
+            </button>
+          )}
         </footer>
       </div>
     </article>

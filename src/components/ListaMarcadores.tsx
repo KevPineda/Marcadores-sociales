@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { BuscadorMarcadores } from "@/components/BuscadorMarcadores";
 import { EsqueletoTarjetas } from "@/components/EsqueletoTarjetas";
 import { FiltroEtiquetas } from "@/components/FiltroEtiquetas";
 import { TarjetaMarcador } from "@/components/TarjetaMarcador";
 import { useCargarMarcadores } from "@/hooks/useCargarMarcadores";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ErrorApiCliente, eliminarMarcador } from "@/lib/api-cliente";
 import { busquedaSchema, type Busqueda, type Marcador } from "@/schemas/marcador";
 import { contarEtiquetas, filtrarMarcadores } from "@/services/filtrar-marcadores";
 import styles from "./ListaMarcadores.module.css";
@@ -67,7 +69,12 @@ export function ListaMarcadores({ busquedaInicial, etiquetaFija }: Props): React
     sincronizarUrl({ q: busqueda.q, etiqueta: etiquetaEnUrl });
   }, [busqueda.q, etiquetaEnUrl]);
 
-  const marcadores = carga.estado === "listo" ? carga.marcadores : SIN_MARCADORES;
+  const cargados = carga.estado === "listo" ? carga.marcadores : SIN_MARCADORES;
+  const [marcadores, quitarOptimista] = useOptimistic(cargados, (actuales, id: string) =>
+    actuales.filter((marcador) => marcador.id !== id),
+  );
+  const [, iniciarTransicion] = useTransition();
+  const [aviso, setAviso] = useState("");
   const etiquetas = useMemo(() => contarEtiquetas(marcadores), [marcadores]);
   const visibles = useMemo(
     () => filtrarMarcadores(marcadores, { q: busqueda.q, etiqueta: busqueda.etiqueta }),
@@ -81,8 +88,29 @@ export function ListaMarcadores({ busquedaInicial, etiquetaFija }: Props): React
     setEtiqueta(null);
   }
 
+  /** Borra un marcador: desaparece al instante (useOptimistic) y vuelve si la API falla. */
+  function eliminar(marcador: Marcador): void {
+    if (!window.confirm(`¿Eliminar «${marcador.titulo}»?`)) {
+      return;
+    }
+    iniciarTransicion(async () => {
+      quitarOptimista(marcador.id);
+      try {
+        await eliminarMarcador(marcador.id);
+        carga.quitar(marcador.id);
+        setAviso(`Se eliminó «${marcador.titulo}».`);
+      } catch (error) {
+        const detalle = error instanceof ErrorApiCliente ? ` ${error.message}` : "";
+        setAviso(`No se pudo eliminar «${marcador.titulo}».${detalle}`);
+      }
+    });
+  }
+
   return (
     <div className={styles.contenedor}>
+      <p className="visualmente-oculto" aria-live="polite">
+        {aviso}
+      </p>
       <div className={styles.controles}>
         <BuscadorMarcadores valor={texto} error={errorTexto} onCambiar={setTexto} />
         {carga.estado === "listo" && !etiquetaFija && etiquetas.length > 0 && (
@@ -114,7 +142,12 @@ export function ListaMarcadores({ busquedaInicial, etiquetaFija }: Props): React
             {visibles.length === 0 ? (
               <div className={styles.aviso}>
                 {marcadores.length === 0 ? (
-                  <p className={styles.avisoTitulo}>Aún no tienes marcadores guardados.</p>
+                  <>
+                    <p className={styles.avisoTitulo}>Aún no tienes marcadores guardados.</p>
+                    <Link href="/guardar" className="boton">
+                      Guardar mi primer enlace
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <p className={styles.avisoTitulo}>Ningún marcador coincide con la búsqueda.</p>
@@ -131,10 +164,16 @@ export function ListaMarcadores({ busquedaInicial, etiquetaFija }: Props): React
               <ul className="rejilla-tarjetas">
                 {visibles.map((marcador) => (
                   <li key={marcador.id}>
-                    <TarjetaMarcador marcador={marcador} />
+                    <TarjetaMarcador marcador={marcador} onEliminar={eliminar} />
                   </li>
                 ))}
               </ul>
+            )}
+
+            {carga.siguienteCursor && (
+              <button type="button" className="boton" onClick={carga.cargarMas} disabled={carga.cargandoMas}>
+                {carga.cargandoMas ? "Cargando…" : "Cargar más marcadores"}
+              </button>
             )}
           </>
         )}

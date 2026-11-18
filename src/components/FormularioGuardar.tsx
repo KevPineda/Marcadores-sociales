@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import type { z } from "zod";
 import { CampoTexto } from "@/components/CampoTexto";
-import { useCargarMarcadores } from "@/hooks/useCargarMarcadores";
 import { usePuedeLeerPortapapeles } from "@/hooks/usePuedeLeerPortapapeles";
-import { guardarMarcadorLocal } from "@/lib/almacen-local";
+import { ErrorApiCliente, guardarMarcador, irAlLogin } from "@/lib/api-cliente";
 import type { Marcador } from "@/schemas/marcador";
 import { MAXIMO_ETIQUETAS, nuevoMarcadorSchema, separarEtiquetas } from "@/schemas/nuevo-marcador";
-import { obtenerDominio } from "@/services/filtrar-marcadores";
-import { idDesdeUrl, motivoUrlNoPermitida, normalizarUrl, sonUrlsDuplicadas } from "@/services/url";
+import { motivoUrlNoPermitida, normalizarUrl } from "@/services/url";
 import styles from "./FormularioGuardar.module.css";
 
 type Valores = { url: string; titulo: string; etiquetas: string; publico: boolean };
@@ -32,6 +30,18 @@ function erroresPorCampo(error: z.ZodError): Errores {
   return errores;
 }
 
+/** Errores por campo a partir de los `detalles` de un 400 de la API. */
+function erroresDeApi(error: ErrorApiCliente): Errores {
+  const errores: Errores = {};
+  for (const { campo, mensaje } of error.detalles) {
+    const raiz = campo.split(".")[0];
+    if ((raiz === "url" || raiz === "titulo" || raiz === "etiquetas") && !errores[raiz]) {
+      errores[raiz] = mensaje;
+    }
+  }
+  return errores;
+}
+
 /** URL normalizada para mostrarla como vista previa, o null si no aplica. */
 function vistaPreviaUrl(url: string): string | null {
   if (!url.trim() || motivoUrlNoPermitida(url)) {
@@ -44,7 +54,6 @@ function vistaPreviaUrl(url: string): string | null {
 /** Formulario controlado para guardar un enlace, validado con el mismo esquema que usará la API. */
 export function FormularioGuardar(): React.JSX.Element {
   const id = useId();
-  const carga = useCargarMarcadores();
   const puedePegar = usePuedeLeerPortapapeles();
   const [valores, setValores] = useState<Valores>(VALORES_INICIALES);
   const [errores, setErrores] = useState<Errores>({});
@@ -85,7 +94,29 @@ export function FormularioGuardar(): React.JSX.Element {
     document.getElementById(idCampo("url"))?.focus();
   }
 
-  /** Valida, revisa duplicados y guarda. */
+  /** Traduce el error de la API a errores de campo o a un aviso. */
+  function mostrarErrorApi(error: unknown): void {
+    if (!(error instanceof ErrorApiCliente)) {
+      setAviso("Ocurrió un error inesperado. Inténtalo de nuevo.");
+      return;
+    }
+    if (error.status === 401) {
+      irAlLogin();
+      return;
+    }
+    if (error.status === 409) {
+      mostrarErrores({ url: "Ya guardaste este enlace." });
+      return;
+    }
+    const porCampo = erroresDeApi(error);
+    if (Object.keys(porCampo).length > 0) {
+      mostrarErrores(porCampo);
+      return;
+    }
+    setAviso(error.message);
+  }
+
+  /** Valida en el navegador y envía a la API (que valida de nuevo, revisa duplicados y saca la vista previa). */
   async function enviar(evento: React.FormEvent<HTMLFormElement>): Promise<void> {
     evento.preventDefault();
     setGuardado(null);
@@ -101,40 +132,20 @@ export function FormularioGuardar(): React.JSX.Element {
       return;
     }
 
-    const datos = validacion.data;
-    const url = normalizarUrl(datos.url);
-    const existentes = carga.estado === "listo" ? carga.marcadores : [];
-    const duplicado = existentes.find((marcador) => sonUrlsDuplicadas(marcador.url, url));
-    if (duplicado) {
-      mostrarErrores({ url: `Ya guardaste este enlace como «${duplicado.titulo}».` });
-      return;
-    }
-
     setEnviando(true);
-    const marcador: Marcador = {
-      id: await idDesdeUrl(url),
-      url,
-      titulo: datos.titulo ?? obtenerDominio(url),
-      descripcion: null,
-      imagenUrl: null,
-      etiquetas: datos.etiquetas,
-      publico: datos.publico,
-      estado: "ok",
-      creadoEn: new Date().toISOString(),
-    };
-    const ok = guardarMarcadorLocal(marcador);
-    setEnviando(false);
-
-    if (!ok) {
-      setAviso("Tu navegador no permitió guardar el enlace. Revisa que no estés en modo privado.");
-      return;
+    setAviso("Guardando y obteniendo la vista previa…");
+    try {
+      const marcador = await guardarMarcador(validacion.data);
+      setValores(VALORES_INICIALES);
+      setErrores({});
+      setAviso("");
+      setGuardado(marcador);
+      requestAnimationFrame(() => refExito.current?.focus());
+    } catch (error) {
+      mostrarErrorApi(error);
+    } finally {
+      setEnviando(false);
     }
-    setValores(VALORES_INICIALES);
-    setErrores({});
-    setAviso("");
-    setGuardado(marcador);
-    carga.reintentar();
-    requestAnimationFrame(() => refExito.current?.focus());
   }
 
   return (
@@ -142,6 +153,7 @@ export function FormularioGuardar(): React.JSX.Element {
       {guardado && (
         <div ref={refExito} tabIndex={-1} role="status" className={styles.exito}>
           <p className={styles.exitoTitulo}>✓ Enlace guardado: «{guardado.titulo}».</p>
+          {guardado.estado === "roto" && <p>⚠ No pudimos abrir la página; quedó marcada como enlace roto.</p>}
           <Link href="/">Ver mis marcadores</Link>
         </div>
       )}

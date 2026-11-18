@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { EsqueletoTarjetas } from "@/components/EsqueletoTarjetas";
 import { ListaMarcadores } from "@/components/ListaMarcadores";
-import { listarEtiquetasEjemplo } from "@/lib/datos-ejemplo";
 import { etiquetaSchema } from "@/schemas/marcador";
 
 type Props = PageProps<"/etiquetas/[etiqueta]">;
@@ -19,19 +20,14 @@ function leerEtiqueta(valor: string): string | null {
   return validacion.success ? validacion.data : null;
 }
 
-/** Prerenderiza las etiquetas conocidas; las demás se generan en la primera visita. */
-export function generateStaticParams(): Array<{ etiqueta: string }> {
-  return listarEtiquetasEjemplo().map((etiqueta) => ({ etiqueta }));
-}
-
 /** Título de la pestaña con la etiqueta. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const etiqueta = leerEtiqueta((await params).etiqueta);
   return { title: etiqueta ? `#${etiqueta}` : "Etiqueta no válida" };
 }
 
-/** Marcadores de una etiqueta. */
-export default async function PaginaEtiqueta({ params }: Props): Promise<React.JSX.Element> {
+/** Lee la etiqueta de la URL (dato de la petición, por eso va dentro de Suspense). */
+async function ContenidoEtiqueta({ params }: { params: Props["params"] }): Promise<React.JSX.Element> {
   const etiqueta = leerEtiqueta((await params).etiqueta);
   if (!etiqueta) {
     notFound();
@@ -45,5 +41,14 @@ export default async function PaginaEtiqueta({ params }: Props): Promise<React.J
       </p>
       <ListaMarcadores busquedaInicial={{ q: "", etiqueta }} etiquetaFija={etiqueta} />
     </>
+  );
+}
+
+/** Marcadores de una etiqueta. */
+export default function PaginaEtiqueta({ params }: Props): React.JSX.Element {
+  return (
+    <Suspense fallback={<EsqueletoTarjetas />}>
+      <ContenidoEtiqueta params={params} />
+    </Suspense>
   );
 }

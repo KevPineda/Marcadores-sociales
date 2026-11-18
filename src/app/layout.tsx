@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
 import { NavPrincipal } from "@/components/NavPrincipal";
 import "./globals.css";
 
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: LayoutProps<"/">): React.JSX.El
             <Link href="/" className="marca">
               <span aria-hidden="true">🔖</span> Marcadores
             </Link>
-            <NavPrincipal />
+            {/* La navegación lee la ruta actual (dato de la petición): se transmite aparte. */}
+            <Suspense fallback={null}>
+              <NavPrincipal />
+            </Suspense>
           </div>
         </header>
         <main id="contenido" tabIndex={-1} className="contenedor principal">

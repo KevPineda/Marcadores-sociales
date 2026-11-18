@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { busquedaSchema, listaMarcadoresSchema, marcadorSchema } from "@/schemas/marcador";
+import { busquedaSchema, marcadorSchema } from "@/schemas/marcador";
 import { crearMarcador } from "../fixtures/marcadores";
 
 describe("marcadorSchema", () => {
@@ -15,12 +13,6 @@ describe("marcadorSchema", () => {
 
   it("rechaza campos desconocidos (modo estricto)", () => {
     expect(marcadorSchema.safeParse({ ...crearMarcador(), uid: "otro-usuario" }).success).toBe(false);
-  });
-
-  it("los datos de ejemplo cumplen el esquema", () => {
-    const archivo = path.resolve(import.meta.dirname, "../../public/datos/marcadores-ejemplo.json");
-    const datos: unknown = JSON.parse(readFileSync(archivo, "utf8"));
-    expect(listaMarcadoresSchema.safeParse(datos).success).toBe(true);
   });
 });
 

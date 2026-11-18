@@ -1,44 +1,48 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { leerMarcadoresLocales } from "@/lib/almacen-local";
-import { cargarMarcadores, ErrorCarga } from "@/lib/cargar-marcadores";
+import { ErrorApiCliente, irAlLogin, listarMisMarcadores } from "@/lib/api-cliente";
 import type { Marcador } from "@/schemas/marcador";
 
 type EstadoCarga =
   | { estado: "cargando" }
   | { estado: "error"; mensaje: string }
-  | { estado: "listo"; marcadores: Marcador[] };
+  | { estado: "listo"; marcadores: Marcador[]; siguienteCursor: string | null; cargandoMas: boolean };
 
-export type ResultadoCarga = EstadoCarga & { reintentar: () => void };
+export type ResultadoCarga = EstadoCarga & {
+  reintentar: () => void;
+  cargarMas: () => void;
+  quitar: (id: string) => void;
+};
 
 const MENSAJE_INESPERADO = "Ocurrió un error inesperado al cargar los marcadores.";
 
-/** Suma los marcadores guardados en este navegador y ordena del más reciente al más antiguo. */
-function combinarConLocales(remotos: Marcador[]): Marcador[] {
-  const porId = new Map<string, Marcador>();
-  for (const marcador of [...leerMarcadoresLocales(), ...remotos]) {
-    if (!porId.has(marcador.id)) {
-      porId.set(marcador.id, marcador);
+/** Traduce el error a un mensaje para la persona; con 401 lleva al login. */
+function mensajeDeError(error: unknown): string {
+  if (error instanceof ErrorApiCliente) {
+    if (error.status === 401) {
+      irAlLogin();
     }
+    return error.message;
   }
-  return [...porId.values()].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
+  return MENSAJE_INESPERADO;
 }
 
-/** Carga los marcadores al montar y expone el estado de la carga y un reintento. */
+/** Carga mis marcadores desde la API al montar; expone reintento, «cargar más» y quitar. */
 export function useCargarMarcadores(): ResultadoCarga {
   const [intento, setIntento] = useState(0);
   const [carga, setCarga] = useState<EstadoCarga>({ estado: "cargando" });
 
   useEffect(() => {
     const controlador = new AbortController();
-    cargarMarcadores(controlador.signal)
-      .then((marcadores) => setCarga({ estado: "listo", marcadores: combinarConLocales(marcadores) }))
+    listarMisMarcadores(null, controlador.signal)
+      .then(({ items, siguienteCursor }) =>
+        setCarga({ estado: "listo", marcadores: items, siguienteCursor, cargandoMas: false }),
+      )
       .catch((error: unknown) => {
-        if (controlador.signal.aborted) {
-          return;
+        if (!controlador.signal.aborted) {
+          setCarga({ estado: "error", mensaje: mensajeDeError(error) });
         }
-        setCarga({ estado: "error", mensaje: error instanceof ErrorCarga ? error.message : MENSAJE_INESPERADO });
       });
     return () => controlador.abort();
   }, [intento]);
@@ -48,5 +52,30 @@ export function useCargarMarcadores(): ResultadoCarga {
     setIntento((anterior) => anterior + 1);
   }, []);
 
-  return { ...carga, reintentar };
+  const cursor = carga.estado === "listo" ? carga.siguienteCursor : null;
+  const cargarMas = useCallback(() => {
+    if (!cursor) {
+      return;
+    }
+    setCarga((actual) => (actual.estado === "listo" ? { ...actual, cargandoMas: true } : actual));
+    listarMisMarcadores(cursor)
+      .then(({ items, siguienteCursor }) =>
+        setCarga((actual) =>
+          actual.estado === "listo"
+            ? { estado: "listo", marcadores: [...actual.marcadores, ...items], siguienteCursor, cargandoMas: false }
+            : actual,
+        ),
+      )
+      .catch((error: unknown) => setCarga({ estado: "error", mensaje: mensajeDeError(error) }));
+  }, [cursor]);
+
+  const quitar = useCallback((id: string) => {
+    setCarga((actual) =>
+      actual.estado === "listo"
+        ? { ...actual, marcadores: actual.marcadores.filter((marcador) => marcador.id !== id) }
+        : actual,
+    );
+  }, []);
+
+  return { ...carga, reintentar, cargarMas, quitar };
 }

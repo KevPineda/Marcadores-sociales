@@ -26,3 +26,14 @@
   text-decoration-thickness: 0.15em;
   text-underline-offset: 0.3em;
 }
+
+.salir {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-pequeno);
+  background: transparent;
+  color: var(--color-texto);
+  font: inherit;
+  cursor: pointer;
+}
