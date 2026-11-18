@@ -28,6 +28,12 @@ const paginaMarcadoresSchema = z.object({
 
 const miPerfilSchema = z.object({ nombre: z.string().nullable() });
 
+const usuarioActualSchema = z.object({
+  usuario: z.object({ uid: z.string(), correo: z.string().nullable(), rol: z.enum(["usuario", "admin"]) }),
+});
+
+const resultadoRevisionSchema = z.object({ revisados: z.number(), rotos: z.number() });
+
 const MENSAJE_SIN_CONEXION = "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
 const MENSAJE_FORMATO = "La respuesta del servidor no tiene el formato esperado.";
 
@@ -103,6 +109,16 @@ export async function obtenerMiPerfil(): Promise<{ nombre: string | null }> {
 /** Reserva mi nombre público. */
 export async function crearMiPerfil(nombre: string): Promise<{ nombre: string | null }> {
   return leer(await pedir("/api/perfil", { method: "POST", body: JSON.stringify({ nombre }) }), miPerfilSchema);
+}
+
+/** Usuario de la sesión actual (con su rol). */
+export async function obtenerUsuarioActual(): Promise<z.infer<typeof usuarioActualSchema>["usuario"]> {
+  return (await leer(await pedir("/api/auth/yo"), usuarioActualSchema)).usuario;
+}
+
+/** Solo administradores: revisa ahora los enlaces rotos. */
+export async function revisarEnlacesAhora(): Promise<z.infer<typeof resultadoRevisionSchema>> {
+  return leer(await pedir("/api/cron/revisar-enlaces", { method: "POST" }), resultadoRevisionSchema);
 }
 
 /** Lleva a la página de inicio de sesión y vuelve después a la página actual. */

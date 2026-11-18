@@ -145,7 +145,9 @@ describe("ListaMarcadores", () => {
     fetchSimulado.mockResolvedValue(new Response(JSON.stringify({ error: "Falla" }), { status: 500 }));
     await usuario.click(screen.getByRole("button", { name: /eliminar.*métricas web esenciales/i }));
     expect(await screen.findByText(/no se pudo eliminar «métricas web esenciales»/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("article")).toHaveLength(2);
+    // Al terminar la transición, useOptimistic descarta el cambio y la tarjeta vuelve.
+    await vi.waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(2));
+    expect(screen.getByRole("heading", { level: 3, name: /métricas web esenciales/i })).toBeInTheDocument();
   });
 
   it("muestra el error de validación junto al campo", async () => {

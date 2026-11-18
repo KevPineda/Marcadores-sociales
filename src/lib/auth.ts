@@ -1,6 +1,6 @@
 import "server-only";
 import type { DecodedIdToken } from "firebase-admin/auth";
-import { ErrorApi, errorNoAutenticado } from "@/lib/errores";
+import { ErrorApi, errorNoAutenticado, errorProhibido } from "@/lib/errores";
 import { obtenerAuth } from "@/lib/firebase-admin";
 import { NOMBRE_COOKIE_SESION } from "@/lib/sesion";
 
@@ -52,6 +52,18 @@ export async function requerirUsuario(request: Request): Promise<Usuario> {
   } catch {
     throw errorNoAutenticado();
   }
+}
+
+/**
+ * Exige una sesión con rol `admin` (custom claim de Firebase): 401 sin sesión, 403 si es usuario normal.
+ * El rol se asigna solo desde el servidor (scripts/asignar-rol.mjs); nadie puede dárselo desde el navegador.
+ */
+export async function requerirAdmin(request: Request): Promise<Usuario> {
+  const usuario = await requerirUsuario(request);
+  if (usuario.rol !== "admin") {
+    throw errorProhibido("Solo un administrador puede hacer esto.");
+  }
+  return usuario;
 }
 
 /**

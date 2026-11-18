@@ -6,7 +6,9 @@ import type { Marcador } from "@/schemas/marcador";
 /** Dos usuarios de prueba: un idToken y una cookie de sesión válidos para cada uno. */
 export const ANA = { uid: "uid-ana", correo: "ana@ejemplo.com", token: "token-ana", cookie: "cookie-ana" };
 export const BETO = { uid: "uid-beto", correo: "beto@ejemplo.com", token: "token-beto", cookie: "cookie-beto" };
-const USUARIOS = [ANA, BETO];
+/** Administradora: su cookie trae la custom claim `rol: "admin"`. */
+export const ADMIN = { uid: "uid-admin", correo: "admin@ejemplo.com", token: "token-admin", cookie: "cookie-admin", rol: "admin" };
+const USUARIOS: Array<{ uid: string; correo: string; token: string; cookie: string; rol?: string }> = [ANA, BETO, ADMIN];
 
 export const BASE = "http://localhost:3000";
 
@@ -24,7 +26,7 @@ export const authFalso = {
     if (!usuario) {
       throw new Error("auth/session-cookie-revoked");
     }
-    return { uid: usuario.uid, sub: usuario.uid, email: usuario.correo };
+    return { uid: usuario.uid, sub: usuario.uid, email: usuario.correo, rol: usuario.rol };
   }),
   createSessionCookie: vi.fn(async () => "cookie-nueva"),
   revokeRefreshTokens: vi.fn(async () => undefined),

@@ -5,8 +5,7 @@ import { rutaInternaSegura } from "@/lib/sesion";
 
 export const metadata: Metadata = {
   title: "Iniciar sesión",
-  description: "Entra para guardar y compartir tus marcadores.",
-  robots: { index: false },
+  description: "Entra para guardar enlaces con vista previa automática y compartirlos en tu colección pública.",
 };
 
 /** Lee ?siguiente= (dato de la petición) y solo acepta rutas internas: evita redirecciones abiertas. */

@@ -1,6 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { requerirAdmin } from "@/lib/auth";
 import { errorNoAutenticado } from "@/lib/errores";
 import { manejar, responderJson } from "@/lib/http";
+import { limitarFrecuencia } from "@/lib/limite-frecuencia";
 import { revisarEnlaces } from "@/services/revision-enlaces";
 
 export const maxDuration = 60;
@@ -23,5 +25,12 @@ export const GET = manejar(async (request) => {
   if (!esSecretoValido(request.headers.get("authorization"))) {
     throw errorNoAutenticado();
   }
+  return responderJson(await revisarEnlaces(ENLACES_POR_EJECUCION));
+});
+
+/** Revisión manual desde la interfaz: solo con sesión de administrador (403 para usuarios normales). */
+export const POST = manejar(async (request) => {
+  const { uid } = await requerirAdmin(request);
+  limitarFrecuencia(`revision-manual:${uid}`, 5, 60_000);
   return responderJson(await revisarEnlaces(ENLACES_POR_EJECUCION));
 });

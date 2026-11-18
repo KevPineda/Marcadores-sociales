@@ -2,6 +2,9 @@
   "name": "49-marcadores-sociales",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -21,6 +24,9 @@
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "zod": "^4.6.7"
+  },
+  "overrides": {
+    "jwks-rsa": "^3.2.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",

@@ -1,10 +1,8 @@
 "use client";
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useId, useState } from "react";
 import { CampoTexto } from "@/components/CampoTexto";
 import { crearSesion, ErrorApiCliente } from "@/lib/api-cliente";
-import { obtenerAuthCliente } from "@/lib/firebase-cliente";
 import { loginSchema, mensajeErrorAuth } from "@/schemas/login";
 import styles from "./FormularioLogin.module.css";
 
@@ -20,6 +18,7 @@ type Props = {
  * Inicio de sesión y registro con Firebase Auth (correo y contraseña).
  * El idToken se cambia por una cookie HttpOnly en /api/auth/sesion y luego se cierra
  * la sesión del SDK: el navegador no guarda tokens accesibles desde JavaScript.
+ * El SDK de Firebase se carga solo al enviar (import dinámico) para no bloquear la carga de la página.
  */
 export function FormularioLogin({ siguiente }: Props): React.JSX.Element {
   const id = useId();
@@ -52,8 +51,10 @@ export function FormularioLogin({ siguiente }: Props): React.JSX.Element {
     setErrores({});
     setEnviando(true);
     setAviso(registrar ? "Creando tu cuenta…" : "Iniciando sesión…");
-    const auth = obtenerAuthCliente();
     try {
+      const [{ createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }, { obtenerAuthCliente }] =
+        await Promise.all([import("firebase/auth"), import("@/lib/firebase-cliente")]);
+      const auth = obtenerAuthCliente();
       const { correo: email, clave: password } = validacion.data;
       const credencial = registrar
         ? await createUserWithEmailAndPassword(auth, email, password)

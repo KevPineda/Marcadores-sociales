@@ -317,6 +317,29 @@ paths:
                   revisados: { type: integer, minimum: 0 }
                   rotos: { type: integer, minimum: 0 }
         "401": { $ref: "#/components/responses/NoAutenticado" }
+    post:
+      tags: [Tareas programadas]
+      summary: Revisar enlaces rotos ahora (solo administradores)
+      description: >-
+        Igual que el cron, pero ejecutado a mano desde la interfaz. Exige una sesión con la custom claim
+        `rol: "admin"` (se asigna con `scripts/asignar-rol.mjs`). Límite de 5 ejecuciones por minuto.
+      security:
+        - cookieSesion: []
+        - bearerIdToken: []
+      responses:
+        "200":
+          description: Resumen de la revisión.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revisados, rotos]
+                properties:
+                  revisados: { type: integer, minimum: 0 }
+                  rotos: { type: integer, minimum: 0 }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "429": { $ref: "#/components/responses/DemasiadasSolicitudes" }
 
 components:
   securitySchemes:
@@ -482,6 +505,12 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: Inicia sesión para continuar. }
+    Prohibido:
+      description: Hay sesión, pero sin permiso (por ejemplo, la acción es solo para administradores).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: Solo un administrador puede hacer esto. }
     OrigenNoPermitido:
       description: La cabecera Origin no es la del sitio (defensa CSRF).
       content:

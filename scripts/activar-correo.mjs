@@ -2,6 +2,8 @@
 // Activa el inicio de sesión con correo y contraseña en Firebase Auth (Identity Toolkit API).
 // Uso: node --env-file=.env.local scripts/activar-correo.mjs
 // Usa la cuenta de servicio de .env.local; no imprime ningún secreto.
+// Herramienta de administración por terminal (nunca llega al navegador): excepción justificada a la regla.
+// eslint-disable-next-line no-restricted-imports
 import { cert } from "firebase-admin/app";
 
 const proyecto = process.env.FIREBASE_PROJECT_ID;

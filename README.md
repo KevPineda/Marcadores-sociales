@@ -2,7 +2,7 @@
 
 Guarda enlaces con etiquetas y vista previa automática (título, descripción, imagen) y compártelos.
 
-**Producción:** URL_PRODUCCION
+**Producción:** https://marcadores-sociales.vercel.app
 
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · CSS Modules · Zod · Firebase (Auth + Firestore vía Admin SDK) · Vitest · Vercel.
 

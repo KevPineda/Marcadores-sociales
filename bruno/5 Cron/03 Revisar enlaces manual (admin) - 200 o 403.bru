@@ -1,0 +1,25 @@
+meta {
+  name: Revisar enlaces manual (admin) - 200 o 403
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/cron/revisar-enlaces
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+docs {
+  Revisión manual de enlaces rotos. Solo para cuentas con la custom claim rol=admin
+  (asígnala con `node --env-file=.env.local scripts/asignar-rol.mjs <correo> admin`).
+  Con una cuenta normal responde 403.
+}
+
+assert {
+  res.status: in [200, 403]
+}

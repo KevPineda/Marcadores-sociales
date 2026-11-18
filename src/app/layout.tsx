@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import Link from "next/link";
 import { Suspense } from "react";
 import { NavPrincipal } from "@/components/NavPrincipal";
+import { URL_SITIO } from "@/lib/sitio";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], display: "swap", variable: "--fuente-base" });
@@ -10,6 +11,14 @@ const geist = Geist({ subsets: ["latin"], display: "swap", variable: "--fuente-b
 export const metadata: Metadata = {
   title: { template: "%s · Marcadores sociales", default: "Marcadores sociales" },
   description: "Guarda enlaces con etiquetas y vista previa automática, y compártelos.",
+  metadataBase: new URL(URL_SITIO),
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    siteName: "Marcadores sociales",
+    title: "Marcadores sociales",
+    description: "Guarda enlaces con etiquetas y vista previa automática, y compártelos.",
+  },
 };
 
 export const viewport: Viewport = {

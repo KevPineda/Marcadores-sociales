@@ -1,0 +1,14 @@
+.panel {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 40rem;
+  margin-top: 2rem;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.panel > button {
+  justify-self: start;
+}

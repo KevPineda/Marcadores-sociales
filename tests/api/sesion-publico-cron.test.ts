@@ -2,12 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as POST_SESION, DELETE as DELETE_SESION } from "@/app/api/auth/sesion/route";
 import { GET as GET_YO } from "@/app/api/auth/yo/route";
-import { GET as GET_CRON } from "@/app/api/cron/revisar-enlaces/route";
+import { GET as GET_CRON, POST as POST_CRON } from "@/app/api/cron/revisar-enlaces/route";
 import { POST as POST_PERFIL } from "@/app/api/perfil/route";
 import { GET as GET_PUBLICO } from "@/app/api/u/[nombre]/marcadores/route";
 import { reiniciarLimites } from "@/lib/limite-frecuencia";
 import { crearMarcador } from "../fixtures/marcadores";
-import { ANA, authFalso, BASE, contexto, peticion, reiniciarFalsos, sembrar } from "./falsos";
+import { ADMIN, ANA, authFalso, BASE, contexto, peticion, reiniciarFalsos, sembrar } from "./falsos";
 
 vi.mock("@/lib/firebase-admin", async () => {
   const { authFalso: falso } = await import("./falsos");
@@ -156,5 +156,35 @@ describe("GET /api/cron/revisar-enlaces", () => {
     );
     expect(respuesta.status).toBe(200);
     expect(await respuesta.json()).toEqual({ revisados: 0, rotos: 0 });
+  });
+});
+
+describe("POST /api/cron/revisar-enlaces (revisión manual, solo admin)", () => {
+  it("sin sesión responde 401", async () => {
+    const respuesta = await POST_CRON(peticion("POST", "/api/cron/revisar-enlaces", { origen: BASE }), undefined);
+    expect(respuesta.status).toBe(401);
+  });
+
+  it("un usuario normal recibe 403", async () => {
+    const respuesta = await POST_CRON(
+      peticion("POST", "/api/cron/revisar-enlaces", { cookie: ANA.cookie, origen: BASE }),
+      undefined,
+    );
+    expect(respuesta.status).toBe(403);
+    expect(await respuesta.json()).toEqual({ error: "Solo un administrador puede hacer esto." });
+  });
+
+  it("una cuenta admin ejecuta la revisión", async () => {
+    const respuesta = await POST_CRON(
+      peticion("POST", "/api/cron/revisar-enlaces", { cookie: ADMIN.cookie, origen: BASE }),
+      undefined,
+    );
+    expect(respuesta.status).toBe(200);
+    expect(await respuesta.json()).toEqual({ revisados: 0, rotos: 0 });
+  });
+
+  it("GET /api/auth/yo informa el rol", async () => {
+    const respuesta = await GET_YO(peticion("GET", "/api/auth/yo", { cookie: ADMIN.cookie }), undefined);
+    expect((await respuesta.json()).usuario.rol).toBe("admin");
   });
 });
